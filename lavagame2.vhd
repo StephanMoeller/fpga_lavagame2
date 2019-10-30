@@ -68,17 +68,23 @@
 		function ConvertNatural_0to255_to_4bitVector
 	  (
 		 inColor    : in natural range 0 to 255;
-		 randomSeed    : in integer
+		 randomSeed    : in integer -- Used to make a softer transition between colors
 	  )
 		 return std_logic_vector is variable outVector : std_logic_vector(3 downto 0) := ('0', '0', '0', '0');
 		 variable outputValue : natural range 0 to 15;
 	  begin
-		outputValue := inColor / 4; -- outputValue now ranges from 0 to 15
+		outputValue := inColor / 16; -- outputValue now ranges from 0 to 15
+		-- determine how much was lost in the division. the more value lost, the higher chance it has to get +1 on outputValue
+		if (randomSeed mod (16 - (inColor - outputValue*16)) = 0 and outputValue < 15) -- Avoiding to 'modulus with zero' simply by using '16 - ...' instead of '15 - ...'
+		then
+			outputValue := outputValue + 1;
+		end if;
 		
-		if((outputValue) mod 2 = 1) then outVector(0) := '1'; end if;
-		if((inColor / 32) mod 2 = 1) then outVector(1) := '1'; end if;
-		if((inColor / 64) mod 2 = 1) then outVector(2) := '1'; end if;
-		if((inColor / 128) mod 2 = 1) then outVector(3) := '1'; end if;
+		
+		if((outputValue/1) mod 2 = 1) then outVector(0) := '1'; end if;
+		if((outputValue/2) mod 2 = 1) then outVector(1) := '1'; end if;
+		if((outputValue/4) mod 2 = 1) then outVector(2) := '1'; end if;
+		if((outputValue/8) mod 2 = 1) then outVector(3) := '1'; end if;
 		 return outVector;
 	  end function ConvertNatural_0to255_to_4bitVector;
 		
