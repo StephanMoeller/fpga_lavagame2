@@ -74,18 +74,22 @@
 		 variable outputValue : natural range 0 to 15;
 	  begin
 		outputValue := inColor / 16; -- outputValue now ranges from 0 to 15
-		-- determine how much was lost in the division. the more value lost, the higher chance it has to get +1 on outputValue
-		if (randomSeed mod (16 - (inColor - outputValue*16)) = 0 and outputValue < 15) -- Avoiding to 'modulus with zero' simply by using '16 - ...' instead of '15 - ...'
+		if(inColor - outputValue*16 > 0) -- <= FIX THIS BUG: When inColor = 1, this resolves to 1, going in, randomSeed mod 1 is always 0, hence, outputValue is subtracted with 1 making it overflow and end up as 15
 		then
-			outputValue := outputValue + 1;
+			-- Values from 1-14 here:
+			if (randomSeed mod (inColor - outputValue*16) = 0)
+			then
+				outputValue := outputValue - 1;
+			end if;
+			
 		end if;
 		
-		
+		-- determine how much was lost in the division. the more value lost, the higher chance it has to get +1 on outputValue
 		if((outputValue/1) mod 2 = 1) then outVector(0) := '1'; end if;
 		if((outputValue/2) mod 2 = 1) then outVector(1) := '1'; end if;
 		if((outputValue/4) mod 2 = 1) then outVector(2) := '1'; end if;
 		if((outputValue/8) mod 2 = 1) then outVector(3) := '1'; end if;
-		 return outVector;
+		return outVector;
 	  end function ConvertNatural_0to255_to_4bitVector;
 		
 		/*
@@ -357,6 +361,7 @@ One field
 				-- light movement
 				if(ptCurrentPixel.x = 0 and ptCurrentPixel.y = 0)
 				then
+					frameCounter := frameCounter + 1;
 					ptLight.x := ptLight.x + 1;
 					if(ptLight.x > 640)
 					then
