@@ -67,11 +67,15 @@
 		
 		function ConvertNatural_0to255_to_4bitVector
 	  (
-		 inColor    : in natural range 0 to 255
+		 inColor    : in natural range 0 to 255;
+		 randomSeed    : in integer
 	  )
 		 return std_logic_vector is variable outVector : std_logic_vector(3 downto 0) := ('0', '0', '0', '0');
+		 variable outputValue : natural range 0 to 15;
 	  begin
-		if((inColor / 16) mod 2 = 1) then outVector(0) := '1'; end if;
+		outputValue := inColor / 4; -- outputValue now ranges from 0 to 15
+		
+		if((outputValue) mod 2 = 1) then outVector(0) := '1'; end if;
 		if((inColor / 32) mod 2 = 1) then outVector(1) := '1'; end if;
 		if((inColor / 64) mod 2 = 1) then outVector(2) := '1'; end if;
 		if((inColor / 128) mod 2 = 1) then outVector(3) := '1'; end if;
@@ -418,9 +422,9 @@ One field
 				-- VGA: RGB on current pixel
 				if(isVisible = '1')
 				then
-					VGA_R <= ConvertNatural_0to255_to_4bitVector(ptCurrentPixel.y*255/480);
-					VGA_G <= ConvertNatural_0to255_to_4bitVector(ptCurrentPixel.x*255/640);
-					VGA_B <= ConvertNatural_0to255_to_4bitVector(255-ptCurrentPixel.x*255/640);
+					VGA_R <= ConvertNatural_0to255_to_4bitVector(ptCurrentPixel.y*255/480, ptCurrentPixel.x+ptCurrentPixel.y);
+					VGA_G <= ConvertNatural_0to255_to_4bitVector(ptCurrentPixel.x*255/640, ptCurrentPixel.x+ptCurrentPixel.y );
+					VGA_B <= ConvertNatural_0to255_to_4bitVector(255-ptCurrentPixel.x*255/640, ptCurrentPixel.x+ptCurrentPixel.y);
 				else
 					VGA_R <= ('0','0','0','0');
 					VGA_G <= ('0','0','0','0');
