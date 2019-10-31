@@ -74,12 +74,12 @@
 		 variable outputValue : natural range 0 to 15;
 	  begin
 		outputValue := inColor / 16; -- outputValue now ranges from 0 to 15
-		if(inColor - outputValue*16 > 0) -- <= FIX THIS BUG: When inColor = 1, this resolves to 1, going in, randomSeed mod 1 is always 0, hence, outputValue is subtracted with 1 making it overflow and end up as 15
+		if(inColor - outputValue*16 > 0 and outputValue < 15) -- <= FIX THIS BUG: When inColor = 1, this resolves to 1, going in, randomSeed mod 1 is always 0, hence, outputValue is subtracted with 1 making it overflow and end up as 15
 		then
 			-- Values from 1-14 here:
-			if (randomSeed mod (inColor - outputValue*16) = 0)
+			if (randomSeed mod (inColor - outputValue*16) > 0)
 			then
-				outputValue := outputValue - 1;
+				outputValue := outputValue + 1;
 			end if;
 			
 		end if;
