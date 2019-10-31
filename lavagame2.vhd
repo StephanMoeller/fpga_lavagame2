@@ -41,6 +41,9 @@
 		constant RED : color_type := (255,0,0);
 		constant BLUE : color_type := (0,0,255);
 		
+		constant DARK : color_type := (50,50,50);
+		constant LIGHT : color_type := (255,255,255);
+		
 		variable ptCurrentPixel : point_type;
 		variable distanceToLight : integer;
 		
@@ -64,6 +67,23 @@
 		
 		variable isVisible : std_logic;
 		
+		
+		function GetBackgroundColor
+		()
+		
+		
+		function DecideColorFromDistance
+	  (
+		 distance    : in integer
+	  )
+		 return color_type is variable outColor : color_type;
+		 variable lightLevel : integer;
+	  begin
+		lightLevel := distance * 255 / ((640*640)+(480*480));
+		 lightLevel := ((640*640)+(480*480)) - lightLevel;
+		 outColor := (lightLevel,lightLevel,lightLevel);
+		return outColor;
+	  end function DecideColorFromDistance;
 		
 		function ConvertNatural_0to255_to_4bitVector
 	  (
@@ -375,15 +395,7 @@ One field
 				-- Distance goes from 0 to about 63:
 				distanceToLight := ((ptCurrentPixel.x - ptLight.x)*(ptCurrentPixel.x - ptLight.x) + (ptCurrentPixel.y - ptLight.y)*(ptCurrentPixel.y - ptLight.y));
 				counter := counter + distanceToLight;
-				distanceToLight := distanceToLight / 1000;
-				
-				-- If line between current pixel and light is crossed by a wall, paint black. If not, paint white (using random and modulus to fade out on a distance)
-				if(((counter + ptCurrentPixel.x + ptCurrentPixel.y) mod distanceToLight) < 1)
-				then
-					currentColor := WHITE;
-				else
-					currentColor := BLACK;
-				end if;
+				currentColor := DecideColorFromDistance(distanceToLight);
 				
 				-- draw light/shadow
 				for I in 0 to 2 loop
@@ -433,9 +445,9 @@ One field
 				-- VGA: RGB on current pixel
 				if(isVisible = '1')
 				then
-					VGA_R <= ConvertNatural_0to255_to_4bitVector(ptCurrentPixel.y*255/480, ptCurrentPixel.x+ptCurrentPixel.y);
-					VGA_G <= ConvertNatural_0to255_to_4bitVector(ptCurrentPixel.x*255/640, ptCurrentPixel.x+ptCurrentPixel.y );
-					VGA_B <= ConvertNatural_0to255_to_4bitVector(255-ptCurrentPixel.x*255/640, ptCurrentPixel.x+ptCurrentPixel.y);
+					VGA_R <= ConvertNatural_0to255_to_4bitVector(currentColor(0), ptCurrentPixel.x+ptCurrentPixel.y*3+counter);
+					VGA_G <= ConvertNatural_0to255_to_4bitVector(currentColor(1), ptCurrentPixel.x+ptCurrentPixel.y*3+counter);
+					VGA_B <= ConvertNatural_0to255_to_4bitVector(currentColor(2), ptCurrentPixel.x+ptCurrentPixel.y*3+counter);
 				else
 					VGA_R <= ('0','0','0','0');
 					VGA_G <= ('0','0','0','0');
