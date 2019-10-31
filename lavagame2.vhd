@@ -54,7 +54,7 @@
 			(ptA => (x => 300,y => 300), ptB => (x => 350,y => 450))
 		);
 		
-		variable ptLight : point_type := (x => 500,y => 150);
+		variable ptLight : point_type := (x => 320,y => 240);
 		  
 		variable lightLed : std_logic;
 		
@@ -66,10 +66,6 @@
 		variable vga_line : natural range 0 to 1024;
 		
 		variable isVisible : std_logic;
-		
-		
-		function GetBackgroundColor
-		()
 		
 		
 		function DecideColorFromDistance
@@ -85,6 +81,10 @@
 		return outColor;
 	  end function DecideColorFromDistance;
 		
+		
+		
+		
+		
 		function ConvertNatural_0to255_to_4bitVector
 	  (
 		 inColor    : in natural range 0 to 255;
@@ -92,16 +92,16 @@
 	  )
 		 return std_logic_vector is variable outVector : std_logic_vector(3 downto 0) := ('0', '0', '0', '0');
 		 variable outputValue : natural range 0 to 15;
+		 variable exceedingValue : integer;
 	  begin
-		outputValue := inColor / 16; -- outputValue now ranges from 0 to 15
-		if(inColor - outputValue*16 > 0 and outputValue < 15) -- <= FIX THIS BUG: When inColor = 1, this resolves to 1, going in, randomSeed mod 1 is always 0, hence, outputValue is subtracted with 1 making it overflow and end up as 15
+	   outputValue := inColor / 16; -- outputValue now ranges from 0 to 15
+		exceedingValue := inColor - (outputValue * 16);
+		if(exceedingValue > 0 and outputValue < 15) -- 'exceedingValue > 0' to avoid modulus with 0, 'outputValue < 15' to avoid overflow
 		then
-			-- Values from 1-14 here:
-			if (randomSeed mod (inColor - outputValue*16) > 0)
+			if(randomSeed mod 16 < exceedingValue)
 			then
 				outputValue := outputValue + 1;
 			end if;
-			
 		end if;
 		
 		-- determine how much was lost in the division. the more value lost, the higher chance it has to get +1 on outputValue
@@ -109,6 +109,7 @@
 		if((outputValue/2) mod 2 = 1) then outVector(1) := '1'; end if;
 		if((outputValue/4) mod 2 = 1) then outVector(2) := '1'; end if;
 		if((outputValue/8) mod 2 = 1) then outVector(3) := '1'; end if;
+		
 		return outVector;
 	  end function ConvertNatural_0to255_to_4bitVector;
 		
@@ -382,7 +383,7 @@ One field
 				if(ptCurrentPixel.x = 0 and ptCurrentPixel.y = 0)
 				then
 					frameCounter := frameCounter + 1;
-					ptLight.x := ptLight.x + 1;
+					-- ptLight.x := ptLight.x + 1; -- Dont move light
 					if(ptLight.x > 640)
 					then
 						ptLight.x := 0;
@@ -445,9 +446,9 @@ One field
 				-- VGA: RGB on current pixel
 				if(isVisible = '1')
 				then
-					VGA_R <= ConvertNatural_0to255_to_4bitVector(currentColor(0), ptCurrentPixel.x+ptCurrentPixel.y*3+counter);
-					VGA_G <= ConvertNatural_0to255_to_4bitVector(currentColor(1), ptCurrentPixel.x+ptCurrentPixel.y*3+counter);
-					VGA_B <= ConvertNatural_0to255_to_4bitVector(currentColor(2), ptCurrentPixel.x+ptCurrentPixel.y*3+counter);
+					VGA_R <= ConvertNatural_0to255_to_4bitVector(currentColor(0), ptCurrentPixel.x+ptCurrentPixel.y+counter);
+					VGA_G <= ConvertNatural_0to255_to_4bitVector(currentColor(1), ptCurrentPixel.x+ptCurrentPixel.y+counter);
+					VGA_B <= ConvertNatural_0to255_to_4bitVector(currentColor(2), ptCurrentPixel.x+ptCurrentPixel.y+counter);
 				else
 					VGA_R <= ('0','0','0','0');
 					VGA_G <= ('0','0','0','0');
