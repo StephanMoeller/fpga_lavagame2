@@ -35,6 +35,7 @@
 		end record line_type;
 		
 		variable currentColor : color_type;
+		variable lightLevel : integer;
 		variable PURPLE : color_type := (255,0,255);
 		constant WHITE : color_type := (255,255,255);
 		constant BLACK : color_type := (0,0,0);
@@ -55,10 +56,11 @@
 		);
 		
 		variable ptLight : point_type := (x => 320,y => 240);
+		constant lightRadius : natural range 0 to 300 := 300;
 		  
 		variable lightLed : std_logic;
 		
-		
+		variable randomSeed : integer;
 		variable counter : natural range 0 to 50000000;
 		variable frameCounter : natural range 0 to 50000000;
 		
@@ -66,23 +68,6 @@
 		variable vga_line : natural range 0 to 1024;
 		
 		variable isVisible : std_logic;
-		
-		
-		function DecideColorFromDistance
-	  (
-		 distance    : in integer
-	  )
-		 return color_type is variable outColor : color_type;
-		 variable lightLevel : integer;
-	  begin
-		lightLevel := distance * 255 / ((640*640)+(480*480));
-		 lightLevel := ((640*640)+(480*480)) - lightLevel;
-		 outColor := (lightLevel,lightLevel,lightLevel);
-		return outColor;
-	  end function DecideColorFromDistance;
-		
-		
-		
 		
 		
 		function ConvertNatural_0to255_to_4bitVector
@@ -323,6 +308,12 @@
 	   -- start of rising
       if rising_edge(clk) then
 		  
+			randomSeed := randomSeed + ptCurrentPixel.x + ptCurrentPixel.y + ptLight.x + ptLight.y;
+			if(randomSeed < 0)
+			then
+				randomSeed := 0;
+			end if;
+		  
 			-- LED COUNTER LOGIC
 			counter := counter + 1;
 			if (counter >= 50000000)
@@ -383,7 +374,7 @@ One field
 				if(ptCurrentPixel.x = 0 and ptCurrentPixel.y = 0)
 				then
 					frameCounter := frameCounter + 1;
-					-- ptLight.x := ptLight.x + 1; -- Dont move light
+					ptLight.x := ptLight.x + 1; -- Dont move light
 					if(ptLight.x > 640)
 					then
 						ptLight.x := 0;
@@ -393,12 +384,22 @@ One field
 				-- LOGIC:
 				ptCurrentPixel := (x => vga_column,y => vga_line);
 				
-				-- Distance goes from 0 to about 63:
+				-- Decide light level based on distance to light
 				distanceToLight := ((ptCurrentPixel.x - ptLight.x)*(ptCurrentPixel.x - ptLight.x) + (ptCurrentPixel.y - ptLight.y)*(ptCurrentPixel.y - ptLight.y));
-				counter := counter + distanceToLight;
-				currentColor := DecideColorFromDistance(distanceToLight);
+				if(distanceToLight < lightRadius*lightRadius)
+				then
+					-- Within radius of the light
+					lightLevel := distanceToLight * 255 / (lightRadius*lightRadius);
+					lightLevel := 255 - lightLevel;
+		 
+					currentColor := (lightLevel,lightLevel,lightLevel);
+				else
+					currentColor := BLACK;
+				end if;
 				
-				-- draw light/shadow
+				
+				
+				-- Override with shadow if line to light is intercepted
 				for I in 0 to 2 loop
 					if (doIntersect(ptCurrentPixel, ptLight, listOfWallLines(I).ptA, listOfWallLines(I).ptB) = '1')
 					then
@@ -446,9 +447,9 @@ One field
 				-- VGA: RGB on current pixel
 				if(isVisible = '1')
 				then
-					VGA_R <= ConvertNatural_0to255_to_4bitVector(currentColor(0), ptCurrentPixel.x+ptCurrentPixel.y+counter);
-					VGA_G <= ConvertNatural_0to255_to_4bitVector(currentColor(1), ptCurrentPixel.x+ptCurrentPixel.y+counter);
-					VGA_B <= ConvertNatural_0to255_to_4bitVector(currentColor(2), ptCurrentPixel.x+ptCurrentPixel.y+counter);
+					VGA_R <= ConvertNatural_0to255_to_4bitVector(currentColor(0), ptCurrentPixel.x+ptCurrentPixel.y+randomSeed);
+					VGA_G <= ConvertNatural_0to255_to_4bitVector(currentColor(1), ptCurrentPixel.x+ptCurrentPixel.y+randomSeed);
+					VGA_B <= ConvertNatural_0to255_to_4bitVector(currentColor(2), ptCurrentPixel.x+ptCurrentPixel.y+randomSeed);
 				else
 					VGA_R <= ('0','0','0','0');
 					VGA_G <= ('0','0','0','0');
