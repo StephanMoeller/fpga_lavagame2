@@ -41,6 +41,7 @@
 		constant BLACK : color_type := (0,0,0);
 		constant RED : color_type := (255,0,0);
 		constant BLUE : color_type := (0,0,255);
+		constant YELLOW : color_type := (255,255,0);
 		
 		constant DARK : color_type := (50,50,50);
 		constant LIGHT : color_type := (255,255,255);
@@ -56,7 +57,7 @@
 		);
 		
 		variable ptLight : point_type := (x => 320,y => 240);
-		constant lightRadius : natural range 0 to 300 := 300;
+		constant lightRadius : integer := 300;
 		  
 		variable lightLed : std_logic;
 		
@@ -374,7 +375,7 @@ One field
 				if(ptCurrentPixel.x = 0 and ptCurrentPixel.y = 0)
 				then
 					frameCounter := frameCounter + 1;
-					ptLight.x := ptLight.x + 1; -- Dont move light
+					ptLight.x := ptLight.x + 1;
 					if(ptLight.x > 640)
 					then
 						ptLight.x := 0;
@@ -385,19 +386,48 @@ One field
 				ptCurrentPixel := (x => vga_column,y => vga_line);
 				
 				-- Decide light level based on distance to light
-				distanceToLight := ((ptCurrentPixel.x - ptLight.x)*(ptCurrentPixel.x - ptLight.x) + (ptCurrentPixel.y - ptLight.y)*(ptCurrentPixel.y - ptLight.y));
+				distanceToLight := ((ptCurrentPixel.x - ptLight.x)**2 + (ptCurrentPixel.y - ptLight.y)**2);
 				if(distanceToLight < lightRadius*lightRadius)
 				then
 					-- Within radius of the light
-					lightLevel := distanceToLight * 255 / (lightRadius*lightRadius);
-					lightLevel := 255 - lightLevel;
-		 
-					currentColor := (lightLevel,lightLevel,lightLevel);
+					lightLevel := 255 - ((distanceToLight) * 255) / (lightRadius*lightRadius);
+					if(lightLevel >= 0 and lightLevel <= 255)
+					then
+						lightLevel := lightLevel*lightLevel; -- lightLevel is between 0 and 255. This operation makes it loose more value the farer away from 255 the value already is
+						lightLevel := lightLevel / 255;
+						if(lightLevel >= 0 and lightLevel <= 255)
+						then
+							--distanceToLight := distanceToLight / 255;
+							currentColor := (lightLevel,lightLevel,lightLevel);
+						elsif (lightLevel < 0)
+						then
+							currentColor := PURPLE;
+						else
+							currentColor := YELLOW;
+						end if;
+						
+					else
+						
+						currentColor := RED; -- sanity testing that this is not hit
+					end if;
+					
 				else
 					currentColor := BLACK;
 				end if;
 				
 				
+				-- DEBUG START
+				--lightLevel := ptCurrentPixel.x;
+				--if(lightLevel < 256)
+				--then
+					--lightLevel := lightLevel ** 2 / 256;
+				--elsif(lightLevel < 256*2)
+				--then
+					--lightLevel := (lightLevel - 256);
+				--end if;
+				
+				-- DEBUG END	
+				--currentColor := (lightLevel,lightLevel,lightLevel);
 				
 				-- Override with shadow if line to light is intercepted
 				for I in 0 to 2 loop
