@@ -57,11 +57,13 @@
 		);
 		
 		variable ptLight : point_type := (x => 320,y => 240);
-		constant lightRadius : integer := 300;
+		variable lightRadius : integer := 300;
+		
+		variable var_255 : integer := 255;
+		variable var_100 : integer := 100;
 		  
 		variable lightLed : std_logic;
 		
-		variable randomSeed : integer;
 		variable counter : natural range 0 to 50000000;
 		variable frameCounter : natural range 0 to 50000000;
 		
@@ -100,38 +102,6 @@
 	  end function ConvertNatural_0to255_to_4bitVector;
 		
 		/*
-		This functions returns true if point and line collide
-		*/
-	  function CheckPointOnLine
-	  (
-		 inPoint    : in point_type;
-		 inLine 	 : in line_type
-	  )
-		 return std_logic is variable collision : std_logic := '0';
-		 variable percentage : integer;
-		 variable expectedY : integer;
-	  begin
-		 if(inPoint.x < inLine.ptA.x and inPoint.x < inLine.ptB.x) then collision := '0';  -- point is to the left
-		 elsif(inPoint.x > inLine.ptA.x and inPoint.x > inLine.ptB.x) then collision := '0'; -- point is to the right
-		 elsif(inPoint.y < inLine.ptA.y and inPoint.y < inLine.ptB.y) then collision := '0'; -- point is above
-		 elsif(inPoint.y > inLine.ptA.y and inPoint.y > inLine.ptB.y) then collision := '0';
-		 else
-			-- Point is within the square of the line
-			percentage := ((inPoint.x - inLine.ptA.x) * 100 / (inLine.ptB.x - inLine.ptA.x));
-			expectedY := inLine.ptA.y + ((inLine.ptB.y - inLine.ptA.y) * percentage / 100);
-			if (expectedY = inPoint.y or expectedY = -inPoint.y)
-			then
-				collision := '1';
-			else
-				collision := '0';
-			end if;
-		 end if; -- point is below
-		 
-		 return collision;
-	  end function CheckPointOnLine;
-		
-		
-		/*
 			Following functions are direct conversion of this line intersect functions from java: https://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/
 		*/
 		function max
@@ -168,152 +138,9 @@
 			return highestValue;
 		end function min;
 		
-		/*
-		// Given three colinear points p, q, r, the function checks if 
-		// point q lies on line segment 'pr' 
-		bool onSegment(Point p, Point q, Point r) 
-		{ 
-			 if (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) && 
-				  q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y)) 
-				 return true; 
-		  
-			 return false; 
-		} 
-		*/
-		function onSegment
-		(
-			p    : in point_type;
-			q    : in point_type;
-			r    : in point_type
-		)
-		return std_logic is variable isOnSegment : std_logic := '0';
-		begin
-			if (q.x <= max(p.x, r.x) and q.x >= min(p.x, r.x)
-			and q.y <= max(p.y, r.y) and q.y >= min(p.y, r.y))
-				then
-					isOnSegment := '1';
-				else
-					isOnSegment := '0';
-				end if;
-				return isOnSegment;
-		end function onSegment;
-		
-		/*
-		// To find orientation of ordered triplet (p, q, r). 
-		// The function returns following values 
-		// 0 --> p, q and r are colinear 
-		// 1 --> Clockwise 
-		// 2 --> Counterclockwise 
-		int orientation(Point p, Point q, Point r) 
-		{ 
-			 // See https://www.geeksforgeeks.org/orientation-3-ordered-points/ 
-			 // for details of below formula. 
-			 int val = (q.y - p.y) * (r.x - q.x) - 
-						  (q.x - p.x) * (r.y - q.y); 
-		  
-			 if (val == 0) return 0;  // colinear 
-		  
-			 return (val > 0)? 1: 2; // clock or counterclock wise 
-		} 
-		*/
-		function orientation
-		(
-			p    : in point_type;
-			q    : in point_type;
-			r    : in point_type
-		)
-		return integer is variable outOrientation : integer;
-		variable tmpVal : integer;
-		begin
-		
-			tmpVal := (q.y - p.y) * (r.x - q.x) - 
-						  (q.x - p.x) * (r.y - q.y); 
-		  
-			 if (tmpVal = 0)
-			 then
-				outOrientation := 0;
-			 elsif (tmpVal > 0)
-			 then
-				outOrientation := 1;
-			 else
-				outOrientation := 2;
-			 end if;
-		
-			return outOrientation;
-		end function orientation;
-		
-		/*
-		// The main function that returns true if line segment 'p1q1' 
-		// and 'p2q2' intersect. 
-		bool doIntersect(Point p1, Point q1, Point p2, Point q2) 
-		{ 
-			 // Find the four orientations needed for general and 
-			 // special cases 
-			 int o1 = orientation(p1, q1, p2); 
-			 int o2 = orientation(p1, q1, q2); 
-			 int o3 = orientation(p2, q2, p1); 
-			 int o4 = orientation(p2, q2, q1); 
-		  
-			 // General case 
-			 if (o1 != o2 && o3 != o4) 
-				  return true; 
-		  
-			 // Special Cases 
-			 // p1, q1 and p2 are colinear and p2 lies on segment p1q1 
-			 if (o1 == 0 && onSegment(p1, p2, q1)) return true; 
-		  
-			 // p1, q1 and q2 are colinear and q2 lies on segment p1q1 
-			 if (o2 == 0 && onSegment(p1, q2, q1)) return true; 
-		  
-			 // p2, q2 and p1 are colinear and p1 lies on segment p2q2 
-			 if (o3 == 0 && onSegment(p2, p1, q2)) return true; 
-		  
-			  // p2, q2 and q1 are colinear and q1 lies on segment p2q2 
-			 if (o4 == 0 && onSegment(p2, q1, q2)) return true; 
-		  
-			 return false; // Doesn't fall in any of the above cases 
-		} 
-		*/
-		function doIntersect
-		(
-			p1 : point_type;
-			q1 : point_type;
-			p2 : point_type;
-			q2 : point_type
-		)
-		return std_logic is variable outVal : std_logic := '0';
-		variable o1 : integer;
-		variable o2 : integer;
-		variable o3 : integer;
-		variable o4 : integer;
-		begin
-		
-			o1 := orientation(p1, q1, p2); 
-			o2 := orientation(p1, q1, q2); 
-			o3 := orientation(p2, q2, p1); 
-			o4 := orientation(p2, q2, q1); 
-		
-			if (o1 /= o2 and o3 /= o4) then outVal := '1';
-			elsif (o1 = 0 and onSegment(p1, p2, q1) = '1') then outVal := '1';
-			elsif (o2 = 0 and onSegment(p1, q2, q1) = '1') then outVal := '1';
-			elsif (o3 = 0 and onSegment(p2, p1, q2) = '1') then outVal := '1';
-			elsif (o4 = 0 and onSegment(p2, q1, q2) = '1') then outVal := '1';
-			else
-				outVal := '0';
-			end if;
-		
-			return outVal;
-		end function doIntersect;
-		
     begin
 	   -- start of rising
       if rising_edge(clk) then
-		  
-			randomSeed := randomSeed + ptCurrentPixel.x + ptCurrentPixel.y + ptLight.x + ptLight.y;
-			if(randomSeed < 0)
-			then
-				randomSeed := 0;
-			end if;
 		  
 			-- LED COUNTER LOGIC
 			counter := counter + 1;
@@ -328,34 +155,6 @@
 			if(clk25 = '1')
 			then
 				
-				
-				/*
-VGA theory taken from: http://martin.hinner.info/vga/640x480_60.html
-Essentials (adjusted to start with video area):
-
-One line
-640 pixels video
-  8 pixels right border
-  8 pixels front porch
- 96 pixels horizontal sync
- 40 pixels back porch
-  8 pixels left border
-
----
-800 pixels total per line
-
-One field
-480 lines video
-  8 lines bottom border
-  2 lines front porch
-  2 lines vertical sync
- 25 lines back porch
-  8 lines top border
-
----
-525 lines total per field   
-
-*/
 				-- VGA: Counters ++
 				if (vga_column < 799)
 				then
@@ -371,17 +170,6 @@ One field
 				end if;
 				if(vga_column < 640 and vga_line < 480) then isVisible := '1'; else isVisible := '0'; end if;
 				
-				-- light movement
-				if(ptCurrentPixel.x = 0 and ptCurrentPixel.y = 0)
-				then
-					frameCounter := frameCounter + 1;
-					ptLight.x := ptLight.x + 1;
-					if(ptLight.x > 640)
-					then
-						ptLight.x := 0;
-					end if;
-				end if;
-				
 				-- LOGIC:
 				ptCurrentPixel := (x => vga_column,y => vga_line);
 				
@@ -390,76 +178,16 @@ One field
 				if(distanceToLight < lightRadius*lightRadius)
 				then
 					-- Within radius of the light
-					lightLevel := 255 - ((distanceToLight) * 255) / (lightRadius*lightRadius);
+					lightLevel := ((distanceToLight * 255) / (lightRadius*lightRadius));
 					if(lightLevel >= 0 and lightLevel <= 255)
 					then
-						lightLevel := lightLevel*lightLevel; -- lightLevel is between 0 and 255. This operation makes it loose more value the farer away from 255 the value already is
-						lightLevel := lightLevel / 255;
-						if(lightLevel >= 0 and lightLevel <= 255)
-						then
-							--distanceToLight := distanceToLight / 255;
-							currentColor := (lightLevel,lightLevel,lightLevel);
-						elsif (lightLevel < 0)
-						then
-							currentColor := PURPLE;
-						else
-							currentColor := YELLOW;
-						end if;
-						
+						currentColor := (lightLevel,lightLevel,lightLevel);
 					else
-						
 						currentColor := RED; -- sanity testing that this is not hit
 					end if;
 					
 				else
 					currentColor := BLACK;
-				end if;
-				
-				
-				-- DEBUG START
-				--lightLevel := ptCurrentPixel.x;
-				--if(lightLevel < 256)
-				--then
-					--lightLevel := lightLevel ** 2 / 256;
-				--elsif(lightLevel < 256*2)
-				--then
-					--lightLevel := (lightLevel - 256);
-				--end if;
-				
-				-- DEBUG END	
-				--currentColor := (lightLevel,lightLevel,lightLevel);
-				
-				-- Override with shadow if line to light is intercepted
-				for I in 0 to 2 loop
-					if (doIntersect(ptCurrentPixel, ptLight, listOfWallLines(I).ptA, listOfWallLines(I).ptB) = '1')
-					then
-						currentColor := BLACK;
-					end if;
-				end loop; 
-				
-				-- Draw walls
-				for I in 0 to 2 loop
-					-- If pixel is on a wall - paint wall
-					if( CheckPointOnLine(ptCurrentPixel, listOfWallLines(I)) = '1')
-					then
-						currentColor := RED;
-					end if;
-				end loop;
-					
-				
-				-- DRAW LIGHT dot
-				if(ptCurrentPixel.x = ptLight.x and ptCurrentPixel.y = ptLight.y)
-				then
-					currentColor := BLUE;
-				end if;
-				
-				
-				
-				-- DRAW BORDER
-				if(ptCurrentPixel.x = 0 or ptCurrentPixel.x = 638 or ptCurrentPixel.y = 1 or ptCurrentPixel.y = 479)
-				then
-					-- BORDER 
-					currentColor := PURPLE;
 				end if;
 				
 				
@@ -477,9 +205,9 @@ One field
 				-- VGA: RGB on current pixel
 				if(isVisible = '1')
 				then
-					VGA_R <= ConvertNatural_0to255_to_4bitVector(currentColor(0), ptCurrentPixel.x+ptCurrentPixel.y+randomSeed);
-					VGA_G <= ConvertNatural_0to255_to_4bitVector(currentColor(1), ptCurrentPixel.x+ptCurrentPixel.y+randomSeed);
-					VGA_B <= ConvertNatural_0to255_to_4bitVector(currentColor(2), ptCurrentPixel.x+ptCurrentPixel.y+randomSeed);
+					VGA_R <= ConvertNatural_0to255_to_4bitVector(currentColor(0), ptCurrentPixel.x+ptCurrentPixel.y);
+					VGA_G <= ConvertNatural_0to255_to_4bitVector(currentColor(1), ptCurrentPixel.x+ptCurrentPixel.y);
+					VGA_B <= ConvertNatural_0to255_to_4bitVector(currentColor(2), ptCurrentPixel.x+ptCurrentPixel.y);
 				else
 					VGA_R <= ('0','0','0','0');
 					VGA_G <= ('0','0','0','0');
